@@ -14,4 +14,9 @@ urlpatterns = [
     path('student/<int:pk>', student_detail),
     path('gettoken/',obtain_auth_token),
     path('login/',Login.as_view()),
+    path('products/',ProductAPI.as_view()),
+    path('products/<int:pk>',ProductAPI.as_view()),
+    path('brands/',BrandAPI.as_view()),
+    path('products-list/',ProductListAPI.as_view()),
+
 ]

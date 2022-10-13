@@ -1,10 +1,14 @@
+from functools import partial
 import imp
+from itertools import product
+from urllib import request
 from django.contrib.auth import authenticate
 from django.shortcuts import render
 from rest_framework import viewsets,status
 # Create your views here.
-from .serializers import Myserializer, StudentSerializer
-from .models import MyModel, Student
+from .serializers import BrandSerializer, LoginSerializer, Myserializer, ProductSerializer, StudentSerializer
+from .models import Brand, MyModel, Product, Student
+from .paginations import PaginationClass
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -12,11 +16,14 @@ from django.contrib.auth.models import User, Group
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, GroupSerializer,MyUserSerializer
-from django.contrib.auth import login
+from rest_framework.generics import ListAPIView
+from .serializers import UserSerializer, GroupSerializer
+from django.contrib.auth import login,logout
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authtoken.serializers import AuthTokenSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.filters import SearchFilter,OrderingFilter
 # create a viewset
 class MyViewSet(viewsets.ModelViewSet):
     # define queryset
@@ -106,50 +113,112 @@ class Login(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
         user = authenticate(username=username, password=password)
-        login(request, user)
         print(user)
         if not user:
             return Response({'error': 'Invalid Credentials'},
                               status=status.HTTP_400_BAD_REQUEST)
-        user_serializer = MyUserSerializer(user)
+        user_serializer = UserSerializer(user,context={'request': request})
+        token, created = Token.objects.get_or_create(user=user)
+        return Response( {
+            'url':user_serializer.data['url'],
+            "username": user.username,
+            "token": token.key,
+        },status=status.h)
+    
 
-        return Response({'msg':'Login Successfully'},user_serializer.data,status=status.HTTP_200_OK)
-
-
-
-
-
-
-
-
-
-# class Login(APIView):
-#     authentication_classes = (TokenAuthentication,)
-#     def post(self,request):
-#         username = request.data.get("username")
-#         password = request.data.get("password")
-#         user = User.objects.get(username=username)
-#         user = authenticate(username=username, password=password)
-#         login(request, user)
-#         if not user:
-#             return Response({'error': 'Invalid Credentials'},
-#                               status=status.HTTP_400_BAD_REQUEST)
-#         return Response({'msg':'Login Successfully'},status=status.HTTP_200_OK)
+class BrandAPI(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def get(self,request):
+        products = Brand.objects.all()
+        serializer = BrandSerializer(products,many=True)
+        return Response(serializer.data)
 
 
-# @api_view(['PUT'])
-# def login(request):
-#     if request.method == "PUT":
-#         serializer = UserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             username = request.data.get("username")
-#             password = request.data.get("password")
-#             user = authenticate(username=username, password=password)
-#             login(request, user)
-#             if not user:
-#               return Response({'error': 'Invalid Credentials'},
-#                               status=status.HTTP_400_BAD_REQUEST)
-#             return Response({'msg':'Login Successfully'},status=status.HTTP_200_OK)
-#         else:
-#             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+class ProductAPI(ListAPIView,APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [SearchFilter,OrderingFilter]
+    search_fields=['product_name']
+    ordering_fields =['product_price']
+    pagination_class = PaginationClass
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+
+
+    # def get(self,request):
+    #     search = request.query_params.get('search')
+    #     print(search)
+    #     if search is not None:
+    #         products = Product.objects.filter(product_name__contains=search)
+    #     else:
+    #         products = Product.objects.all()
+    #     serializer = ProducstSerializer(products,many=True)
+    #     return Response(serializer.data)
+
+
+    def post(self,request):
+        print(request.data)
+        serializer = ProductSerializer(data=request.data)
+        print(serializer)
+        if serializer.is_valid():
+            serializer.validated_data['brand_name']=request.data['brand_name']
+            serializer.save()
+            return Response({'msg':'Data Created'},status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)      
+
+    def put(self,request,pk):
+        print(request.data)
+        try:
+            product = Product.objects.get(pk=pk)
+            serializer = ProductSerializer(product,data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'msg':'Data Updated'},status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST) 
+        except:
+            return Response({'msg':'Data Not Found'},status=status.HTTP_404_NOT_FOUND)
+
+
+    def patch(self,request,pk):
+        print(request.data)
+        try:
+            product = Product.objects.get(pk=pk)
+            serializer = ProductSerializer(product,data=request.data,partial=True)
+            if serializer.is_valid():
+                print(serializer.validated_data)
+                serializer.save()
+                return Response({'msg':'Data Updated','data':serializer.data},status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST) 
+        except:
+            return Response({'msg':'Data Not Found'},status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self,request,pk):
+        print(request.data)
+        try:
+            product = Product.objects.get(pk=pk)
+            product.delete()
+            return Response({'msg':'Data Deleted Successfully'},status=status.HTTP_200_OK)
+        except:
+            return Response({'msg':'Data Not Found'},status=status.HTTP_404_NOT_FOUND)
+
+
+class ProductListAPI(ListAPIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    queryset = Product.objects.all()
+
+    serializer_class = ProductSerializer
+    filter_backends = [SearchFilter,OrderingFilter]
+    search_fields=['product_name']
+    ordering_fields =['product_price']
+    pagination_class = PaginationClass

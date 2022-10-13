@@ -1,3 +1,5 @@
+from pyexpat import model
+from unicodedata import name
 from django.db import models
 from django.forms import CharField
 
@@ -23,3 +25,15 @@ class Singer(models.Model):
     def __str__(self):
         return self.name
 
+class Brand(models.Model):
+    name = models.CharField(max_length=200)
+    def __str__(self):
+        return self.name
+
+class Product(models.Model):
+    product_name = models.CharField(max_length=200)
+    brand = models.ForeignKey(Brand,on_delete=models.CASCADE,related_name='products')
+    product_price = models.PositiveIntegerField(max_length=100)
+    description = models.TextField()
+    def __str__(self):
+        return self.product_name
