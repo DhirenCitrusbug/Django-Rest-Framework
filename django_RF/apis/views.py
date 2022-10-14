@@ -1,7 +1,3 @@
-from functools import partial
-import imp
-from itertools import product
-from urllib import request
 from django.contrib.auth import authenticate
 from django.shortcuts import render
 from rest_framework import viewsets,status
@@ -21,9 +17,10 @@ from .serializers import UserSerializer, GroupSerializer
 from django.contrib.auth import login,logout
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.filters import SearchFilter,OrderingFilter
+
+
 # create a viewset
 class MyViewSet(viewsets.ModelViewSet):
     # define queryset
@@ -123,7 +120,7 @@ class Login(APIView):
             'url':user_serializer.data['url'],
             "username": user.username,
             "token": token.key,
-        },status=status.h)
+        },status=status.HTTP_200_OK)
     
 
 class BrandAPI(APIView):
@@ -143,7 +140,7 @@ class ProductAPI(ListAPIView,APIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [SearchFilter,OrderingFilter]
-    search_fields=['product_name']
+    search_fields=['product_name','description',]
     ordering_fields =['product_price']
     pagination_class = PaginationClass
 
@@ -166,26 +163,33 @@ class ProductAPI(ListAPIView,APIView):
     def post(self,request):
         print(request.data)
         serializer = ProductSerializer(data=request.data)
+        ProductSerializer._declared_fields['brand_name'].read_only=False
+        print(ProductSerializer._declared_fields['brand_name'].read_only)
         print(serializer)
         if serializer.is_valid():
-            serializer.validated_data['brand_name']=request.data['brand_name']
+            # serializer.validated_data['brand_name']=request.data['brand_name']
             serializer.save()
             return Response({'msg':'Data Created'},status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)      
 
     def put(self,request,pk):
-        print(request.data)
+
+
         try:
             product = Product.objects.get(pk=pk)
-            serializer = ProductSerializer(product,data=request.data)
+            print(ProductSerializer._declared_fields)
+            serializer = ProductSerializer(product,data=request.data,request=request)
+            serializer._declared_fields['brand_name'].read_only=True
+            print(serializer._declared_fields['brand_name'].__dict__)
             if serializer.is_valid():
                 serializer.save()
+                
                 return Response({'msg':'Data Updated'},status=status.HTTP_200_OK)
             else:
                 return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST) 
-        except:
-            return Response({'msg':'Data Not Found'},status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'msg':'Data Not Found'+str(e)},status=status.HTTP_404_NOT_FOUND)
 
 
     def patch(self,request,pk):
@@ -222,3 +226,4 @@ class ProductListAPI(ListAPIView):
     search_fields=['product_name']
     ordering_fields =['product_price']
     pagination_class = PaginationClass
+

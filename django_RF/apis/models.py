@@ -1,8 +1,10 @@
+from email.policy import default
+from enum import unique
 from pyexpat import model
 from unicodedata import name
 from django.db import models
 from django.forms import CharField
-
+from autoslug import AutoSlugField
 # Create your models here.
 class MyModel(models.Model):
     title = models.CharField(max_length=200)
@@ -27,6 +29,7 @@ class Singer(models.Model):
 
 class Brand(models.Model):
     name = models.CharField(max_length=200)
+    slug = AutoSlugField(populate_from='name',unique=True,null=True,default=None)
     def __str__(self):
         return self.name
 

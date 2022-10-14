@@ -1,6 +1,3 @@
-from dataclasses import fields
-from itertools import product
-from unicodedata import name
 from rest_framework import serializers
 
 from .models import Brand, MyModel, Product, Student
@@ -55,22 +52,40 @@ class BrandSerializer(serializers.ModelSerializer):
         model = Brand
         fields = ['name','products']
 
+class ReadWriteSerializerMethodField(serializers.SerializerMethodField):
+    def __init__(self, method_name=None, **kwargs):
+        self.method_name = method_name
+        kwargs['source'] = '*'
+        kwargs['read_only'] = False
+        super(serializers.SerializerMethodField, self).__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        return {self.field_name: data}
+
 class ProductSerializer(serializers.ModelSerializer):
-    brand_name = serializers.SerializerMethodField()
-    # brand = serializers.SlugRelatedField(queryset=Brand.objects.all(),slug_field='name',many=False)
+    brand_name = ReadWriteSerializerMethodField()
     class Meta:
         model = Product
-        fields = ['product_name','product_price','description','brand_name']
+        fields = ['product_name','product_price','description','brand','brand_name']
         read_only_fields = ('brand',)
+        
+    def __init__(self, instance=None, data=...,request=None, **kwargs):
+        print(data,'dfdf',...)
+        try:
+            if request.method == 'PUT' or request.method == 'PATCH':
+                self._declared_fields['brand_name']=serializers.SerializerMethodField()
+                print(self._declared_fields['brand_name'].read_only,'here')
+        except:
+            pass
+        super().__init__(instance, data, **kwargs)
 
     def get_brand_name(self,obj):
-        print(obj)
+ 
         return Brand.objects.get(id=obj.brand.id).name
 
 
     def create(self,validated_data):
         product_name = validated_data['product_name']
-        print
         brand,created = Brand.objects.get_or_create(name=validated_data['brand_name'])
         product_price = validated_data['product_price']
         description = validated_data['description']
@@ -82,3 +97,5 @@ class ProductSerializer(serializers.ModelSerializer):
         instance.description = validated_data.get('description', instance.description)
         instance.save()
         return instance
+
+
