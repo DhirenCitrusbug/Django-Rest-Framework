@@ -19,5 +19,7 @@ urlpatterns = [
     path('products/<int:pk>',ProductAPI.as_view()),
     path('brands/',BrandAPI.as_view()),
     path('products-list/',ProductListAPI.as_view()),
+    path('brand/<int:pk>',BrandDetailAPI.as_view()),
+    path('product-detail/<int:pk>',ProductDetailAPI.as_view()),
 
 ]

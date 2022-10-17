@@ -29,14 +29,13 @@ class Singer(models.Model):
 
 class Brand(models.Model):
     name = models.CharField(max_length=200)
-    slug = AutoSlugField(populate_from='name',unique=True,null=True,default=None)
     def __str__(self):
         return self.name
 
 class Product(models.Model):
     product_name = models.CharField(max_length=200)
     brand = models.ForeignKey(Brand,on_delete=models.CASCADE,related_name='products')
-    product_price = models.PositiveIntegerField(max_length=100)
+    product_price = models.PositiveIntegerField()
     description = models.TextField()
     def __str__(self):
         return self.product_name

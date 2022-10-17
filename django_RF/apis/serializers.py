@@ -66,18 +66,17 @@ class ProductSerializer(serializers.ModelSerializer):
     brand_name = ReadWriteSerializerMethodField()
     class Meta:
         model = Product
-        fields = ['product_name','product_price','description','brand','brand_name']
-        read_only_fields = ('brand',)
+        fields = ['id','product_name','product_price','description','brand','brand_name']
+        read_only_fields = ('brand','id')
         
-    def __init__(self, instance=None, data=...,request=None, **kwargs):
-        print(data,'dfdf',...)
+    def __init__(self, instance=None,request=None, **kwargs):
+
         try:
             if request.method == 'PUT' or request.method == 'PATCH':
                 self._declared_fields['brand_name']=serializers.SerializerMethodField()
-                print(self._declared_fields['brand_name'].read_only,'here')
         except:
             pass
-        super().__init__(instance, data, **kwargs)
+        super().__init__(instance, **kwargs)
 
     def get_brand_name(self,obj):
  
