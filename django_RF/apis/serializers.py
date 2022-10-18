@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 
 from .models import Brand, MyModel, Product, Student
@@ -40,9 +41,9 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ['url', 'name']
 
 
-class LoginSerializer(serializers.Serializer):
-      username = serializers.CharField(max_length=100)
-      password = serializers.CharField(max_length=100)    
+# class LoginSerializer(serializers.Serializer):
+#       username = serializers.CharField(max_length=100)
+#       password = serializers.CharField(max_length=100)    
 
     
 
@@ -66,7 +67,7 @@ class ProductSerializer(serializers.ModelSerializer):
     brand_name = ReadWriteSerializerMethodField()
     class Meta:
         model = Product
-        fields = ['id','product_name','product_price','description','brand','brand_name']
+        fields = ['product_name','product_price','description','brand','brand_name']
         read_only_fields = ('brand','id')
         
     def __init__(self, instance=None,request=None, **kwargs):

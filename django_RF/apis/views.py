@@ -1,9 +1,6 @@
-from itertools import product
-from django.contrib.auth import authenticate
-from django.shortcuts import render
 from rest_framework import viewsets,status
 # Create your views here.
-from .serializers import BrandSerializer, LoginSerializer, Myserializer, ProductSerializer, StudentSerializer
+from .serializers import BrandSerializer,  Myserializer, ProductSerializer, StudentSerializer
 from .models import Brand, MyModel, Product, Student
 from .paginations import PaginationClass
 from rest_framework.decorators import api_view
@@ -106,21 +103,21 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-class Login(APIView):
-    def post(self,request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        user = authenticate(username=username, password=password)
-        if not user:
-            return Response({'error': 'Invalid Credentials'},
-                              status=status.HTTP_400_BAD_REQUEST)
-        user_serializer = UserSerializer(user,context={'request': request})
-        token, created = Token.objects.get_or_create(user=user)
-        return Response( {
-            'url':user_serializer.data['url'],
-            "username": user.username,
-            "token": token.key,
-        },status=status.HTTP_200_OK)
+# class Login(APIView):
+#     def post(self,request):
+#         username = request.data.get("username")
+#         password = request.data.get("password")
+#         user = authenticate(username=username, password=password)
+#         if not user:
+#             return Response({'error': 'Invalid Credentials'},
+#                               status=status.HTTP_400_BAD_REQUEST)
+#         user_serializer = UserSerializer(user,context={'request': request})
+#         token, created = Token.objects.get_or_create(user=user)
+#         return Response( {
+#             'url':user_serializer.data['url'],
+#             "username": user.username,
+#             "token": token.key,
+#         },status=status.HTTP_200_OK)
     
 
 
@@ -228,8 +225,8 @@ class BrandAPI(ListCreateAPIView):
     serializer_class = BrandSerializer
     lookup_fields = ['id']
     filter_backends = [SearchFilter,OrderingFilter]
-    search_fields=['product_name']
-    ordering_fields =['product_price','product_name']
+    search_fields=['name']
+    ordering_fields =['name']
     pagination_class = PaginationClass
 
 class BrandDetailAPI(RetrieveUpdateDestroyAPIView):
